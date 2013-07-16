@@ -5,7 +5,7 @@ public class PacketInfo {
 	public static final int SERVER_UPDATE_CLOCK = 1;
 	public static final int SERVER_UPDATE_POS = 2;
 	public static final int SERVER_LOCAL_CLIENT = 3;
-	public static final int[] SERVER_PACKET_LENGTHS = new int[] { 9, 17, 39, 2 };
+	public static final int[] SERVER_PACKET_LENGTHS = new int[] { 9, 17, 43, 2 };
 
 	public static final int CLIENT_SYNC_CLOCK = 0;
 	public static final int CLIENT_SEND_KEYSTATE = 1;

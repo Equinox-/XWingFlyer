@@ -93,6 +93,7 @@ public class ServerClient extends Thread {
 		dOut.writeFloat(player.quaternion.y);
 		dOut.writeFloat(player.quaternion.z);
 		dOut.writeByte(player.getKeyState());
+		dOut.writeFloat(player.speed);
 		dOut.close();
 		byte[] pack = bOut.toByteArray();
 		bOut.close();

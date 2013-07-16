@@ -25,7 +25,7 @@ public class Client extends Thread {
 
 	public Client(ThreadGroup group) throws UnknownHostException, IOException {
 		super(group, "ClientListener");
-		this.sock = new Socket(InetAddress.getByName("wdesktop.machpi.org"),
+		this.sock = new Socket(InetAddress.getLocalHost(),
 				9293);
 		this.group = group;
 		this.players = new ObjectHeap<ClientPlayer>();
@@ -91,7 +91,7 @@ public class Client extends Thread {
 			}
 			if (id != getClientID() || p.getKeyState() == 0) {
 				p.updatePosition(time, x, y, z, qW, qX, qY, qZ,
-						dataIn.readByte());
+						dataIn.readByte(),dataIn.readFloat());
 			}
 			break;
 		case PacketInfo.SERVER_LOCAL_CLIENT:

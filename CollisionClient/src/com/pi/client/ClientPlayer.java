@@ -24,7 +24,7 @@ public class ClientPlayer extends Player {
 	}
 
 	public void updatePosition(long time, float x, float y, float z, float qW,
-			float qX, float qY, float qZ, byte keyState) {
+			float qX, float qY, float qZ, byte keyState, float f) {
 		lastUpdate = System.currentTimeMillis();
 		position.x = x;
 		position.y = y;
@@ -33,6 +33,7 @@ public class ClientPlayer extends Player {
 		quaternion.x = qX;
 		quaternion.y = qY;
 		quaternion.z = qZ;
+		this.speed = f;
 		super.updateKeystate(keyState, time);
 	}
 

@@ -10,7 +10,7 @@ public class Player {
 	private static final float ACCEL_SECOND = 1.5f;
 
 	public Vector3D position = new Vector3D();
-	public float speed = 0.1f;
+	public float speed = 0.5f;
 	public Quaternion quaternion = new Quaternion();
 	protected TransMatrix matrix = new TransMatrix();
 
@@ -45,11 +45,11 @@ public class Player {
 
 	public void update() {
 		if (lastUpdate != 0) {
-			Vector3D velocity = matrix.multiply(new Vector3D(0, 0, -speed))
-					.subtract(position);
+			Vector3D velocity;
 			if (!rolledBack) {
+				velocity = matrix.multiply(new Vector3D(0, 0, -speed))
+						.subtract(position);
 				float seconds = ((float) (controlUpdate - lastUpdate)) / 1000f;
-				System.out.println("Rollback: " + seconds);
 				// Rollback position
 				position.x += velocity.x * seconds;
 				position.y += velocity.y * seconds;
@@ -57,15 +57,15 @@ public class Player {
 
 				// Rollback velocity
 				applyKeystate(laggedKeyState, -seconds);
-				lastUpdate = System.currentTimeMillis();
+				lastUpdate = controlUpdate;
 				rolledBack = true;
 			}
 			float seconds = ((float) (System.currentTimeMillis() - lastUpdate)) / 1000f;
 			// Update velocity based on keystate
 			applyKeystate(keyState, seconds);
-			matrix.setQuaternion(quaternion, position.x, position.y,
-					position.z);
-			velocity = matrix.multiply(new Vector3D(0, 0, speed)).subtract(position);
+			matrix.setQuaternion(quaternion, position.x, position.y, position.z);
+			velocity = matrix.multiply(new Vector3D(0, 0, -speed)).subtract(
+					position);
 			// Update position based on keystate
 			position.x += velocity.x * seconds;
 			position.y += velocity.y * seconds;

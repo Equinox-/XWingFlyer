@@ -39,7 +39,7 @@ public class ClientGUI {
 		}
 		Display.setDisplayMode(new DisplayMode(768, 768));
 		Display.create();
-		Display.setLocation(0, 1050);
+		//Display.setLocation(0, 1050);
 
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
