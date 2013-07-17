@@ -23,20 +23,26 @@ public class Client extends Thread {
 	private ObjectHeap<ClientPlayer> players;
 	private byte clientID;
 
+	private boolean singlePlayer = false;
+
 	public Client(ThreadGroup group) throws UnknownHostException, IOException {
 		super(group, "ClientListener");
-		this.sock = new Socket(InetAddress.getLocalHost(),
-				9293);
 		this.group = group;
 		this.players = new ObjectHeap<ClientPlayer>();
-		start();
-		players.set(0, new ClientPlayer((byte) 0));
-		clientID = 0;
+		if (singlePlayer) {
+			players.set(0, new ClientPlayer((byte) 0));
+			clientID = 0;
+		} else {
+			this.sock = new Socket(InetAddress.getLocalHost(), 9293);
+			start();
+		}
 	}
 
 	public void send(byte[] packet) throws IOException {
-		sock.getOutputStream().write(packet);
-		sock.getOutputStream().flush();
+		if (!singlePlayer) {
+			sock.getOutputStream().write(packet);
+			sock.getOutputStream().flush();
+		}
 	}
 
 	public void sendSyncClocks(long serverTime) throws IOException {
@@ -89,9 +95,10 @@ public class Client extends Thread {
 			if (p == null) {
 				players.set(id, p = new ClientPlayer(id));
 			}
-			if (id != getClientID() || p.getKeyState() == 0) {
+			if (id != getClientID()
+					|| p.getLastControlUpdate() + (trip * 4) < time) {
 				p.updatePosition(time, x, y, z, qW, qX, qY, qZ,
-						dataIn.readByte(),dataIn.readFloat());
+						dataIn.readByte(), dataIn.readFloat());
 			}
 			break;
 		case PacketInfo.SERVER_LOCAL_CLIENT:

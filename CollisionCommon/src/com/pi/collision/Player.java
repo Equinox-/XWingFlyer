@@ -106,4 +106,8 @@ public class Player {
 	public byte getKeyState() {
 		return keyState;
 	}
+
+	public long getLastControlUpdate() {
+		return controlUpdate;
+	}
 }

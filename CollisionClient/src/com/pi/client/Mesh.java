@@ -14,8 +14,17 @@ public class Mesh {
 	private List<Solid> solids = new ArrayList<Solid>();
 
 	private static class Facet {
-		List<Vector3D> verticies = new ArrayList<Vector3D>();
-		Vector3D normal;
+		private List<Vector3D> verticies = new ArrayList<Vector3D>();
+		private Vector3D normal;
+		private Vector3D center;
+
+		public void closeFacet() {
+			center = new Vector3D();
+			for (Vector3D v : verticies) {
+				center.add(v);
+			}
+			center.multiply(1f / (float) verticies.size());
+		}
 	}
 
 	private static class Solid {
@@ -24,6 +33,15 @@ public class Mesh {
 				Float.MAX_VALUE, Float.MAX_VALUE);
 		private Vector3D maxPoint = new Vector3D(Float.MIN_VALUE,
 				Float.MIN_VALUE, Float.MIN_VALUE);
+		private Vector3D center;
+
+		public void closeSolid() {
+			center = new Vector3D();
+			for (Facet f : facets) {
+				center.add(f.center);
+			}
+			center.multiply(1f / (float) facets.size());
+		}
 
 		boolean inBounding(Vector3D v) {
 			return v.x > minPoint.x && v.y > minPoint.y && v.z > minPoint.z
@@ -46,6 +64,8 @@ public class Mesh {
 				String[] parts = s.split(" ");
 				if (parts[0].equalsIgnoreCase("solid")) {
 					solids.add(new Solid());
+				} else if (parts[0].equalsIgnoreCase("endsolid")) {
+					solids.get(solids.size() - 1).closeSolid();
 				} else {
 					Solid solid = solids.get(solids.size() - 1);
 					if (parts[0].equalsIgnoreCase("facet")) {
@@ -54,6 +74,9 @@ public class Mesh {
 								.multiply(new Vector3D(Float.valueOf(parts[2]),
 										Float.valueOf(parts[4]), Float
 												.valueOf(parts[3])));
+						solid.facets.get(solid.facets.size()-1).normal.normalize();
+					} else if (parts[0].equalsIgnoreCase("endfacet")) {
+						solid.facets.get(solid.facets.size() - 1).closeFacet();
 					} else if (parts[0].equalsIgnoreCase("vertex")) {
 						Vector3D v = mat.multiply(new Vector3D(Float
 								.valueOf(parts[1]), Float.valueOf(parts[3]),
@@ -95,12 +118,24 @@ public class Mesh {
 	public boolean collidesBounding(Vector3D v) {
 		for (int i = 0; i < solids.size(); i++) {
 			if (i != 2) {
-				if (solids.get(i).inBounding(v)){
+				if (solids.get(i).inBounding(v)) {
 					return true;
 				}
 			}
 		}
 		return false;
+	}
+
+	public void drawNormals() {
+		GL11.glBegin(GL11.GL_LINES);
+		for (Solid solid : solids) {
+			for (Facet f : solid.facets) {
+				GL11.glVertex3f(f.center.x, f.center.y, f.center.z);
+				GL11.glVertex3f(f.center.x + f.normal.x, f.center.y
+						+ f.normal.y, f.center.z + f.normal.z);
+			}
+		}
+		GL11.glEnd();
 	}
 
 	public void drawBounding() {
