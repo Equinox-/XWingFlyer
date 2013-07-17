@@ -19,22 +19,26 @@ public class ClientPlayer extends Player {
 
 	private byte id;
 
+	private long lastAuthUpdate;
+
 	public ClientPlayer(byte id2) {
 		this.id = id2;
 	}
 
 	public void updatePosition(long time, float x, float y, float z, float qW,
 			float qX, float qY, float qZ, byte keyState, float f) {
-		lastUpdate = System.currentTimeMillis();
-		position.x = x;
-		position.y = y;
-		position.z = z;
-		quaternion.w = qW;
-		quaternion.x = qX;
-		quaternion.y = qY;
-		quaternion.z = qZ;
-		this.speed = f;
-		super.updateKeystate(keyState, time);
+		if (time > lastAuthUpdate) {
+			lastUpdate = time;
+			position.x = x;
+			position.y = y;
+			position.z = z;
+			quaternion.w = qW;
+			quaternion.x = qX;
+			quaternion.y = qY;
+			quaternion.z = qZ;
+			this.speed = f;
+			super.updateKeystate(keyState, time);
+		}
 	}
 
 	public void update() {

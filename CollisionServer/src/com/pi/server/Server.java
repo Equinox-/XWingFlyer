@@ -31,6 +31,7 @@ public class Server extends Thread {
 		socketAcceptor = new Thread(group, new SocketAcceptor(this));
 		socketAcceptor.setName("SocketAcceptor");
 		socketAcceptor.start();
+		onConnect(null);
 	}
 
 	private void onConnect(Socket sock) {

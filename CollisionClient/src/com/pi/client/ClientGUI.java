@@ -94,7 +94,9 @@ public class ClientGUI {
 			GL11.glTranslatef(0, -.5f, -5f);
 			GL11.glRotatef(6, 1, 0, 0);
 			ClientPlayer me = client.getPlayers().get(client.getClientID());
-			GL11.glMultMatrix(me.laggedMatrix);
+			if (me != null) {
+				GL11.glMultMatrix(me.laggedMatrix);
+			}
 
 			GL11.glLight(GL11.GL_LIGHT0, GL11.GL_POSITION, light);
 			GL11.glLight(GL11.GL_LIGHT0, GL11.GL_AMBIENT, lightAmbient);

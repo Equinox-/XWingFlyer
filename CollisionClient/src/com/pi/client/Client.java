@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 import com.pi.collision.PacketInfo;
+import com.pi.collision.Player;
 import com.pi.collision.debug.PIResourceViewer;
 import com.pi.collision.debug.PlayerMonitorPanel;
 import com.pi.collision.debug.ThreadMonitorPanel;
@@ -21,7 +22,7 @@ public class Client extends Thread {
 	private long trip;
 	private ThreadGroup group;
 	private ObjectHeap<ClientPlayer> players;
-	private byte clientID;
+	private byte clientID = -1;
 
 	private boolean singlePlayer = false;
 

@@ -28,7 +28,9 @@ public class ServerClient extends Thread {
 		this.server = server;
 		this.sock = s;
 		this.id = id;
-		start();
+		if (s != null) {
+			start();
+		}
 		try {
 			sendCalculateClockSkew();
 			sendLocalClient();
@@ -101,8 +103,10 @@ public class ServerClient extends Thread {
 	}
 
 	public void send(byte[] packet) throws IOException {
-		sock.getOutputStream().write(packet);
-		sock.getOutputStream().flush();
+		if (sock != null) {
+			sock.getOutputStream().write(packet);
+			sock.getOutputStream().flush();
+		}
 	}
 
 	public void process(byte[] pack) throws IOException {
@@ -128,7 +132,9 @@ public class ServerClient extends Thread {
 		case PacketInfo.CLIENT_SEND_KEYSTATE:
 			long time = dataIn.readLong();
 			byte keyState = dataIn.readByte();
-			player.updateKeystate(keyState, time);
+			if (time > player.getLastControlUpdate()) {
+				player.updateKeystate(keyState, time);
+			}
 			break;
 		}
 		dataIn.close();
