@@ -25,6 +25,11 @@ public class ClientPlayer extends Player {
 		this.id = id2;
 	}
 
+	public void localUpdateKeystate(byte keyState, long time) {
+		lastAuthUpdate = System.currentTimeMillis();
+		super.updateKeystate(keyState, time);
+	}
+
 	public void updatePosition(long time, float x, float y, float z, float qW,
 			float qX, float qY, float qZ, byte keyState, float f) {
 		if (time > lastAuthUpdate) {

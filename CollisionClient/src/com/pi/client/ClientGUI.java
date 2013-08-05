@@ -64,7 +64,7 @@ public class ClientGUI {
 		}
 		Display.setDisplayMode(new DisplayMode(768, 768));
 		Display.create();
-		Display.setLocation(0, 1050);
+		//Display.setLocation(0, 1050);
 
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
@@ -149,7 +149,7 @@ public class ClientGUI {
 				keystate |= PacketInfo.KEY_ACCEL_DOWN_MASK;
 			}
 			if (keystate != me.getKeyState()) {
-				me.updateKeystate(keystate, System.currentTimeMillis());
+				me.localUpdateKeystate(keystate, System.currentTimeMillis());
 				try {
 					client.sendKeyStates(keystate);
 				} catch (IOException e) {
