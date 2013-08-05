@@ -5,24 +5,32 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 
 import com.pi.collision.PacketInfo;
-import com.pi.collision.Player;
 import com.pi.collision.debug.PIResourceViewer;
 import com.pi.collision.debug.PlayerMonitorPanel;
 import com.pi.collision.debug.ThreadMonitorPanel;
 import com.pi.collision.util.ObjectHeap;
 
 public class Client extends Thread {
-	private Socket sock;
+	private DatagramSocket sock;
 	private long clockSkew; // Client-Server
 	private long trip;
 	private ThreadGroup group;
 	private ObjectHeap<ClientPlayer> players;
 	private byte clientID = -1;
+	private static final InetAddress remote;
+	static {
+		try {
+			remote = InetAddress.getLocalHost();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	private boolean singlePlayer = false;
 
@@ -34,15 +42,16 @@ public class Client extends Thread {
 			players.set(0, new ClientPlayer((byte) 0));
 			clientID = 0;
 		} else {
-			this.sock = new Socket(InetAddress.getLocalHost(), 9293);
+			this.sock = new DatagramSocket();
+			sock.connect(remote, 9293);
+			send(new byte[0]);
 			start();
 		}
 	}
 
 	public void send(byte[] packet) throws IOException {
 		if (!singlePlayer) {
-			sock.getOutputStream().write(packet);
-			sock.getOutputStream().flush();
+			sock.send(new DatagramPacket(packet, packet.length, remote, 9293));
 		}
 	}
 
@@ -70,9 +79,9 @@ public class Client extends Thread {
 		send(pack);
 	}
 
-	public void process(byte[] pack) throws IOException {
+	public void process(byte[] pack, int offset, int length) throws IOException {
 		DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(
-				pack));
+				pack, offset, length));
 		switch ((int) dataIn.readByte()) {
 		case PacketInfo.SERVER_CALC_CLOCK:
 			sendSyncClocks(dataIn.readLong());
@@ -115,21 +124,11 @@ public class Client extends Thread {
 
 	@Override
 	public void run() {
-		byte[] buffer = new byte[1024];
-		int head = 0;
+		DatagramPacket data = new DatagramPacket(new byte[1024], 1024);
 		while (sock.isConnected()) {
 			try {
-				head += sock.getInputStream().read(buffer, head,
-						buffer.length - head);
-				if (head > 1
-						&& head >= PacketInfo.SERVER_PACKET_LENGTHS[buffer[0]]) {
-					byte[] pack = new byte[PacketInfo.SERVER_PACKET_LENGTHS[buffer[0]]];
-					System.arraycopy(buffer, 0, pack, 0, pack.length);
-					process(pack);
-					System.arraycopy(buffer, pack.length, buffer, 0, head
-							- pack.length);
-					head = head - pack.length;
-				}
+				sock.receive(data);
+				process(data.getData(), data.getOffset(), data.getLength());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -144,6 +143,9 @@ public class Client extends Thread {
 		Client client = new Client(group);
 		view.addTab("Players", new PlayerMonitorPanel(client.players));
 		try {
+			//while (client.isAlive()) {
+			//	Thread.sleep(100L);
+			//}
 			new ClientGUI(client);
 		} catch (Exception e) {
 		}

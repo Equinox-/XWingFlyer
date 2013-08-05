@@ -1,8 +1,12 @@
 package com.pi.server;
 
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.pi.collision.Player;
 import com.pi.collision.debug.PIResourceViewer;
@@ -14,10 +18,11 @@ import com.pi.collision.util.ObjectHeap;
 public class Server extends Thread {
 	private static final long TICK_TIME = 25;
 	private static final long NET_UPDATE = 40;
-	private ServerSocket socket;
+	private DatagramSocket socket;
+	private Map<SocketAddress, Integer> mapping = new HashMap<SocketAddress, Integer>();
 	private ObjectHeap<ServerClient> clients;
 	private ObjectHeap<Player> players;
-	private Thread socketAcceptor;
+	private Thread socketListener;
 	public final ThreadGroup group;
 	private IDAllocator ids = new IDAllocator();
 
@@ -26,19 +31,21 @@ public class Server extends Thread {
 		this.group = group;
 		clients = new ObjectHeap<ServerClient>();
 		players = new ObjectHeap<Player>();
-		socket = new ServerSocket(9293);
+		socket = new DatagramSocket(9293);
 		start();
-		socketAcceptor = new Thread(group, new SocketAcceptor(this));
-		socketAcceptor.setName("SocketAcceptor");
-		socketAcceptor.start();
+		socketListener = new Thread(group, new SocketListener(this));
+		socketListener.setName("SocketAcceptor");
+		socketListener.start();
 		onConnect(null);
 	}
 
-	private void onConnect(Socket sock) {
+	private int onConnect(SocketAddress addr) {
 		int id = ids.checkOut();
-		clients.set(id, new ServerClient(sock, this, (byte) id));
+		clients.set(id, new ServerClient(addr, this, (byte) id));
 		players.set(id, clients.get(id).player);
+		mapping.put(addr, id);
 		System.out.println(id + " connected!");
+		return id;
 	}
 
 	public void run() {
@@ -94,17 +101,28 @@ public class Server extends Thread {
 		}
 	}
 
-	private static class SocketAcceptor implements Runnable {
+	private static class SocketListener implements Runnable {
 		private Server server;
 
-		public SocketAcceptor(Server serv) {
+		public SocketListener(Server serv) {
 			this.server = serv;
 		}
 
 		public void run() {
+			DatagramPacket p = new DatagramPacket(new byte[1024], 1024);
 			while (server.isAlive()) {
 				try {
-					server.onConnect(server.socket.accept());
+					server.socket.receive(p);
+					Integer id = server.mapping.get(p.getSocketAddress());
+					if (id == null) {
+						id = server.onConnect(p.getSocketAddress());
+					}
+					if (id != null && p.getLength() > 0) {
+						ServerClient c = server.clients.get(id);
+						if (c != null) {
+							c.process(p.getData(), p.getOffset(), p.getLength());
+						}
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -127,9 +145,14 @@ public class Server extends Thread {
 	}
 
 	public void disposeClient(ServerClient serverClient) {
+		mapping.remove(serverClient.getSocketAddress());
 		clients.set(serverClient.getClientID(), null);
 		players.set(serverClient.getClientID(), null);
 		ids.checkIn(serverClient.getClientID());
 		System.out.println(serverClient.getClientID() + " disconnected!");
+	}
+
+	public void send(DatagramPacket datagramPacket) throws IOException {
+		socket.send(datagramPacket);
 	}
 }

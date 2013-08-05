@@ -5,15 +5,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.SocketAddress;
 
 import com.pi.collision.PacketInfo;
 import com.pi.collision.Player;
 
-public class ServerClient extends Thread {
+public class ServerClient {
 	private static final long PING_TIMEOUT = 10000L;
 	private static final long CLIENT_TIMEOUT = 60000L;
-	private Socket sock;
+	private SocketAddress addr;
 	Player player = new Player();
 	private long clockSkew; // Client-Server
 	private long trip;
@@ -23,19 +24,19 @@ public class ServerClient extends Thread {
 	private long lastPing = 0;
 	private long lastPingSent = 0;
 
-	public ServerClient(Socket s, Server server, byte id) {
-		super(server.group, "ClientListener" + id);
+	public ServerClient(SocketAddress s, Server server, byte id) {
 		this.server = server;
-		this.sock = s;
+		this.addr = s;
 		this.id = id;
-		if (s != null) {
-			start();
-		}
 		try {
 			sendCalculateClockSkew();
 			sendLocalClient();
 		} catch (IOException e) {
 		}
+	}
+
+	public SocketAddress getSocketAddress() {
+		return addr;
 	}
 
 	public void checkPing() throws IOException {
@@ -45,7 +46,6 @@ public class ServerClient extends Thread {
 		}
 		if (lastPing > 0
 				&& lastPing + CLIENT_TIMEOUT < System.currentTimeMillis()) {
-			sock.close();
 			server.disposeClient(this);
 		}
 	}
@@ -103,16 +103,15 @@ public class ServerClient extends Thread {
 	}
 
 	public void send(byte[] packet) throws IOException {
-		if (sock != null) {
-			sock.getOutputStream().write(packet);
-			sock.getOutputStream().flush();
+		if (addr != null) {
+			server.send(new DatagramPacket(packet, packet.length, addr));
 		}
 	}
 
-	public void process(byte[] pack) throws IOException {
+	public void process(byte[] pack, int offset, int length) throws IOException {
 		long tick = System.currentTimeMillis();
 		DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(
-				pack));
+				pack, offset, length));
 		switch ((int) dataIn.readByte()) {
 		case PacketInfo.CLIENT_SYNC_CLOCK:
 			long trip = tick - dataIn.readLong();
@@ -138,44 +137,6 @@ public class ServerClient extends Thread {
 			break;
 		}
 		dataIn.close();
-	}
-
-	@Override
-	public void run() {
-		byte[] buffer = new byte[1024];
-		int head = 0;
-		while (sock.isConnected() && !sock.isInputShutdown()
-				&& !sock.isClosed()) {
-			try {
-				int read = sock.getInputStream().read(buffer, head,
-						buffer.length - head);
-				if (read == -1) {
-					throw new IOException("reset");
-				}
-				head += read;
-				if (head > 1
-						&& head >= PacketInfo.CLIENT_PACKET_LENGTHS[buffer[0]]) {
-					byte[] pack = new byte[PacketInfo.CLIENT_PACKET_LENGTHS[buffer[0]]];
-					System.arraycopy(buffer, 0, pack, 0, pack.length);
-					process(pack);
-					System.arraycopy(buffer, pack.length, buffer, 0, head
-							- pack.length);
-					head = head - pack.length;
-				}
-			} catch (IOException e) {
-				if (e.getMessage().contains("reset")) {
-					try {
-						sock.close();
-						server.disposeClient(this);
-					} catch (IOException e1) {
-					}
-					break;
-				}
-				if (!e.getMessage().contains("closed")) {
-					e.printStackTrace();
-				}
-			}
-		}
 	}
 
 	public byte getClientID() {
